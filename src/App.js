@@ -1,105 +1,71 @@
-import { useState } from 'react';
-
-const content = [
-  {
-    summary: 'React is a library for building UIs',
-    details:
-      'Dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-  },
-  {
-    summary: 'State management is like giving state a home',
-    details:
-      'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-  },
-  {
-    summary: 'We can think of props as the component API',
-    details:
-      'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
-  },
-];
+import { useEffect, useState } from 'react';
 
 export default function App() {
-  return (
-    <div>
-      <Tabbed content={content} />
-    </div>
+  const [amount, setAmount] = useState(1);
+  const [fromCurr, setFromCurr] = useState('EUR');
+  const [toCurr, setToCurr] = useState('USD');
+  const [output, setOutput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(
+    function () {
+      async function convert() {
+        setIsLoading(true);
+        const res = await fetch(
+          `https://api.frankfurter.app/latest?amount=${amount}&from=${fromCurr}&to=${toCurr}`
+        );
+        const data = await res.json();
+        setOutput(data.rates[toCurr]);
+        setIsLoading(false);
+      }
+
+      if (fromCurr === toCurr) return setOutput(amount);
+      convert();
+    },
+    [amount, fromCurr, toCurr]
   );
-}
-console.log(<DifferentContent teats={32} />); //return React comp function
-console.log(DifferentContent()); // return div
-
-function Tabbed({ content }) {
-  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <div>
-      <div className="tabs">
-        <Tab num={0} activeTab={activeTab} onClick={setActiveTab} />
-        <Tab num={1} activeTab={activeTab} onClick={setActiveTab} />
-        <Tab num={2} activeTab={activeTab} onClick={setActiveTab} />
-        <Tab num={3} activeTab={activeTab} onClick={setActiveTab} />
-      </div>
-
-      {activeTab <= 2 ? (
-        <TabContent item={content.at(activeTab)} />
+      <input
+        type="text"
+        value={amount}
+        onChange={(e) => setAmount(Number(e.target.value))}
+        disabled={isLoading}
+      />
+      <select
+        value={fromCurr}
+        onChange={(e) => setFromCurr(e.target.value)}
+        disabled={isLoading}
+      >
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+        <option value="ILS">ILS</option>
+        <option value="INR">CAD</option>
+      </select>
+      <select
+        value={toCurr}
+        onChange={(e) => setToCurr(e.target.value)}
+        disabled={isLoading}
+      >
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+        <option value="ILS">ILS</option>
+        <option value="INR">CAD</option>
+      </select>
+      {isLoading ? (
+        <Loader />
       ) : (
-        <DifferentContent />
+        <p>
+          {output} {toCurr}
+        </p>
       )}
-
-      {/* {TabContent({ item: content.at(0) })} 
-      //never ever do that */}
     </div>
   );
 }
 
-function Tab({ num, activeTab, onClick }) {
-  return (
-    <button
-      className={activeTab === num ? 'tab active' : 'tab'}
-      onClick={() => onClick(num)}
-    >
-      Tab {num + 1}
-    </button>
-  );
+function Loader() {
+  return <p className="loader">Loading...</p>;
 }
 
-function TabContent({ item }) {
-  const [showDetails, setShowDetails] = useState(true);
-  const [likes, setLikes] = useState(0);
-
-  function handleInc() {
-    setLikes(likes + 1);
-  }
-
-  return (
-    <div className="tab-content">
-      <h4>{item.summary}</h4>
-      {showDetails && <p>{item.details}</p>}
-
-      <div className="tab-actions">
-        <button onClick={() => setShowDetails((h) => !h)}>
-          {showDetails ? 'Hide' : 'Show'} details
-        </button>
-
-        <div className="hearts-counter">
-          <span>{likes} ❤️</span>
-          <button onClick={handleInc}>+</button>
-          <button>+++</button>
-        </div>
-      </div>
-
-      <div className="tab-undo">
-        <button>Undo</button>
-        <button>Undo in 2s</button>
-      </div>
-    </div>
-  );
-}
-
-function DifferentContent() {
-  return (
-    <div className="tab-content">
-      <h4>I'm a DIFFERENT tab, so I reset state 💣💥</h4>
-    </div>
-  );
-}
+//`https://api.frankfurter.app/latest?amount=100&from=EUR&to=USD`
