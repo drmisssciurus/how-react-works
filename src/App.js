@@ -1,71 +1,70 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-export default function App() {
-  const [amount, setAmount] = useState(1);
-  const [fromCurr, setFromCurr] = useState('EUR');
-  const [toCurr, setToCurr] = useState('USD');
-  const [output, setOutput] = useState('');
+function useGeolocation() {
   const [isLoading, setIsLoading] = useState(false);
+  const [position, setPosition] = useState({});
+  const [error, setError] = useState(null);
 
-  useEffect(
-    function () {
-      async function convert() {
-        setIsLoading(true);
-        const res = await fetch(
-          `https://api.frankfurter.app/latest?amount=${amount}&from=${fromCurr}&to=${toCurr}`
-        );
-        const data = await res.json();
-        setOutput(data.rates[toCurr]);
+  function getPosition() {
+    if (!navigator.geolocation)
+      return setError('Your browser does not support geolocation');
+
+    setIsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setIsLoading(false);
+      },
+      (error) => {
+        setError(error.message);
         setIsLoading(false);
       }
+    );
+  }
 
-      if (fromCurr === toCurr) return setOutput(amount);
-      convert();
-    },
-    [amount, fromCurr, toCurr]
-  );
+  return { isLoading, position, error, getPosition };
+}
+
+export default function App() {
+  const [countClicks, setCountClicks] = useState(0);
+
+  const {
+    isLoading,
+    position: { lat, lng },
+    error,
+    getPosition,
+  } = useGeolocation();
+
+  function handleClick() {
+    setCountClicks((count) => count + 1);
+    getPosition();
+  }
 
   return (
     <div>
-      <input
-        type="text"
-        value={amount}
-        onChange={(e) => setAmount(Number(e.target.value))}
-        disabled={isLoading}
-      />
-      <select
-        value={fromCurr}
-        onChange={(e) => setFromCurr(e.target.value)}
-        disabled={isLoading}
-      >
-        <option value="USD">USD</option>
-        <option value="EUR">EUR</option>
-        <option value="ILS">ILS</option>
-        <option value="INR">CAD</option>
-      </select>
-      <select
-        value={toCurr}
-        onChange={(e) => setToCurr(e.target.value)}
-        disabled={isLoading}
-      >
-        <option value="USD">USD</option>
-        <option value="EUR">EUR</option>
-        <option value="ILS">ILS</option>
-        <option value="INR">CAD</option>
-      </select>
-      {isLoading ? (
-        <Loader />
-      ) : (
+      <button onClick={handleClick} disabled={isLoading}>
+        Get my position
+      </button>
+
+      {isLoading && <p>Loading position...</p>}
+      {error && <p>{error}</p>}
+      {!isLoading && !error && lat && lng && (
         <p>
-          {output} {toCurr}
+          Your GPS position:{' '}
+          <a
+            target="_blank"
+            rel="noreferrer"
+            href={`https://www.openstreetmap.org/#map=16/${lat}/${lng}`}
+          >
+            {lat}, {lng}
+          </a>
         </p>
       )}
+
+      <p>You requested position {countClicks} times</p>
     </div>
   );
 }
-
-function Loader() {
-  return <p className="loader">Loading...</p>;
-}
-
-//`https://api.frankfurter.app/latest?amount=100&from=EUR&to=USD`
